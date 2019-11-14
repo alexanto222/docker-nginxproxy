@@ -1,0 +1,72 @@
+Requirement - Nginx load balancer for Docker containers. 
+
+Steps:
+1. Create two directories named as app and proxy. docker-compose file should in this location 
+    root@ip-172-31-24-53:/opt/docker# ls -l
+    total 12
+    drwxr-xr-x 2 root root 4096 Nov 14 13:01 app
+    -rw-r--r-- 1 root root  144 Nov 14 14:07 docker-compose.yml
+    drwxr-xr-x 2 root root 4096 Nov 14 14:41 proxy
+
+2. Access app directory and create Dockerfile and index.html
+    
+    Dockerfile contents:
+    
+    FROM nginx:alpine
+    MAINTAINER alexanto222@gmail.com
+    COPY index.html /usr/share/nginx/html
+
+    index.html contents:
+    
+    <!DOCTYPE html>
+    <html>
+    <title>Docker Site</title>
+    <body>
+
+    <h1>Docker with Nginx Load balancer</h1>
+  
+    </body>
+    </html>
+
+3. Access the proxy directory and add the contents. 
+    
+    Dockerfile contents:
+    
+    FROM nginx:alpine
+    RUN rm /etc/nginx/conf.d/*
+    COPY proxy.conf /etc/nginx/conf.d/
+    
+    proxy.conf
+    root@ip-172-31-24-53:/opt/docker/proxy# cat proxy.conf 
+    server {
+
+        listen 80;
+
+        resolver 127.0.0.11 valid=5s;
+        set $upstream http://app;
+        location / {
+                proxy_pass $upstream;
+        }
+
+    }
+    
+4. docker-compose.yml
+    
+   #root@ip-172-31-24-53:/opt/docker# cat docker-compose.yml
+    ---
+      version: '2'
+
+      services:
+        app:
+            build: app
+
+        proxy:
+            build: proxy
+            ports:
+              - "8000:80"
+
+5. #docker-compose build
+6. #docker-compose up
+7. #docker-compose scale app=4 
+8. Check the logs and see the connections are establishing to multiple VMs. Load is balanced. 
+    
